@@ -2,13 +2,14 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Ardalis.GuardClauses;
-using SportEventManager.Core.StatisticsAggregate;
+using SportEventManager.Core.EventAggregate;
 using SportEventManager.Core.TeamAggregate;
 using SportEventManager.SharedKernel;
+using SportEventManager.SharedKernel.Interfaces;
 
-namespace SportEventManager.Core.EventAggregate;
+namespace SportEventManager.Core.MatchAggregate;
 
-public class Match : EntityBase
+public class Match : EntityBase, IAggregateRoot
 {
   [Required]
   public DateTime StartTime { get; set; }
@@ -119,14 +120,15 @@ public class Match : EntityBase
     {
       _playersStats[i].Update(playerStats[i]);
     }
-    HomeTeamStats.Update(homeStats);
-    GuestTeamStats.Update(guestStats);
 
-    if (HomeTeamStats.Win)
+    HomeTeamStats.Update(homeStats, guestStats);
+    GuestTeamStats.Update(guestStats, homeStats);
+
+    if (HomeTeamStats.Win && GuestTeamStats.Loss)
       WinnerName = HomeTeam.Name;
-    else if (HomeTeamStats.Draw)
-      WinnerName = "DRAW";
-    else WinnerName = GuestTeam.Name;
+    else if (HomeTeamStats.Loss && GuestTeamStats.Win)
+      WinnerName = GuestTeam.Name;
+    else WinnerName = "DRAW";
   }
 
   public void Archive()

@@ -1,11 +1,10 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using SportEventManager.Core.EventAggregate;
-using SportEventManager.Core.StatisticsAggregate;
-using SportEventManager.Core.TeamAggregate;
+﻿using SportEventManager.Core.EventAggregate;
+using SportEventManager.Core.MatchAggregate;
+using SportEventManager.Web.ViewModels.EventModel;
+using SportEventManager.Web.ViewModels.MatchModel.Stats;
 using SportEventManager.Web.ViewModels.TeamModel;
-using SportEventManager.Web.ViewModels.TeamModel.Stats;
 
-namespace SportEventManager.Web.ViewModels.EventModel;
+namespace SportEventManager.Web.ViewModels.MatchModel;
 
 public class MatchViewModel
 {
@@ -15,11 +14,17 @@ public class MatchViewModel
 
   public DateTime EndTime { get; set; }
 
-  public String? WinnerName { get; set; } = string.Empty;
+  public string? WinnerName { get; set; } = string.Empty;
 
   public bool IsArchived { get; set; } = false;
 
-  public bool IsEnded { get; set; } = false;
+  public bool IsEnded
+  {
+    get
+    {
+      return DateTime.Now >= EndTime;
+    }
+  }
 
   public int EventId { get; set; }
 
@@ -44,8 +49,16 @@ public class MatchViewModel
   public bool IsLive
   {
     get
-    { 
+    {
       return DateTime.Now >= StartTime && DateTime.Now <= EndTime;
+    }
+  }
+
+  public bool StatsNotUpdateYet
+  {
+    get
+    {
+      return HomeTeamStats is { Draw: false, Loss: false, Win: false };
     }
   }
 
@@ -57,7 +70,6 @@ public class MatchViewModel
       StartTime = match.StartTime,
       EndTime = match.EndTime,
       Stadium = StadiumViewModel.FromStadium(stadium: match.Stadium),
-      IsEnded = match.IsEnded,
       WinnerName = match.WinnerName,
       IsArchived = match.IsArchived,
       EventId = match.EventId,
@@ -67,19 +79,20 @@ public class MatchViewModel
       GuestTeamId = match.GuestTeamId,
       HomeTeam = TeamViewModel.FromTeam(team: match.HomeTeam),
       GuestTeam = TeamViewModel.FromTeam(team: match.GuestTeam),
-      HomeTeamPlayersMatchStats = match.PlayersStats.Select(
-                ps => FbPlayerMatchStatsViewModel.FromPlayerMatchStats(ps)).ToList()
+      HomeTeamPlayersMatchStats = match.PlayersStats
+        .Select(FbPlayerMatchStatsViewModel.FromPlayerMatchStats)
+        .ToList()
     };
 
-    if(match.PlayersStats.Count > 0)
-     matchViewModel.GetTeamPlayersStats();
+    if (match.PlayersStats.Count > 0)
+      matchViewModel.GetTeamPlayersStats();
 
     return matchViewModel;
   }
 
   private void GetTeamPlayersStats()
   {
-    for (int i = 0; i < GuestTeam.NumberOfPlayers; i++)
+    for (var i = 0; i < GuestTeam.NumberOfPlayers; i++)
     {
       GuestTeamPlayersMatchStats.Add(HomeTeamPlayersMatchStats[HomeTeam.NumberOfPlayers]);
       HomeTeamPlayersMatchStats.RemoveAt(HomeTeam.NumberOfPlayers);
@@ -88,10 +101,9 @@ public class MatchViewModel
 
   public int CalculateMinutesElapsed()
   {
-    TimeSpan elapsedTime = DateTime.Now - StartTime;
-    int minutesElapsed = (int)elapsedTime.TotalMinutes;
+    var elapsedTime = DateTime.Now - StartTime;
+    var minutesElapsed = (int)elapsedTime.TotalMinutes;
 
-    
     return minutesElapsed;
   }
 }

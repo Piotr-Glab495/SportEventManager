@@ -4,7 +4,7 @@ using SportEventManager.Core.TeamAggregate;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel;
 using Ardalis.GuardClauses;
-using SportEventManager.Core.StatisticsAggregate;
+using SportEventManager.Core.MatchAggregate;
 
 namespace SportEventManager.Core.EventAggregate;
 public class Event : EntityBase, IAggregateRoot
@@ -33,7 +33,7 @@ public class Event : EntityBase, IAggregateRoot
 
   [Required]
   [DefaultValue(false)]
-  public bool IsEnded{ get; private set; } = false;
+  public bool IsEnded { get; private set; } = false;
 
   [Required]
   public int MinPlayersQuantityPerTeam { get; set; } = 0;
@@ -43,7 +43,7 @@ public class Event : EntityBase, IAggregateRoot
 
   //navigation properties
 
-  private List<Stadium> _stadiums  = new();
+  private List<Stadium> _stadiums = new();
   private List<Team> _teams = new();
   private List<Match> _matches = new();
   public ICollection<Match> Matches => _matches.AsReadOnly();
@@ -69,35 +69,27 @@ public class Event : EntityBase, IAggregateRoot
     Guard.Against.InvalidInput(
       minPlayersQuantityPerTeam,
       nameof(minPlayersQuantityPerTeam),
-      (minPlayersQuantityPerTeam => 
-        minPlayersQuantityPerTeam == 7 || minPlayersQuantityPerTeam == 9 || minPlayersQuantityPerTeam == 11),
+      (minPlayerQuantity =>
+        minPlayerQuantity is 7 or 9 or 11),
       "Players quantity per team must be 7, 9 or 11!"
       );
     MinPlayersQuantityPerTeam = Guard.Against.NegativeOrZero(minPlayersQuantityPerTeam, nameof(minPlayersQuantityPerTeam));
     Guard.Against.InvalidInput(
       matchDurationMinutes,
       nameof(matchDurationMinutes),
-      matchDurationMinutes => matchDurationMinutes < 150 && matchDurationMinutes > 15,
+      mdr => mdr is <= 150 and >= 15,
       "Match duration must be between 15 and 150 minutes"
     );
     MatchDurationMinutes = Guard.Against.NegativeOrZero(matchDurationMinutes, nameof(matchDurationMinutes));
     IsArchived = false;
   }
 
-  public void UpdateMatchStats(int i, FbTeamMatchStats homeStats, FbTeamMatchStats guestStats, List<FbPlayerMatchStats> playerStats)
-  {
-    _matches[i].EndMatch(homeStats, guestStats, playerStats);
-  }
-
   public void AddStadium(Stadium newStadium)
   {
     Guard.Against.Null(newStadium, nameof(newStadium));
-    foreach(Stadium stad in _stadiums)
+    if (_stadiums.Any(stadium => stadium.Id == newStadium.Id))
     {
-      if(stad.Id == newStadium.Id)
-      {
-        throw new Exception("The stadium " + newStadium.Name + " was chosen more than once.");
-      }
+      throw new Exception("The stadium " + newStadium.Name + " was chosen more than once.");
     }
     _stadiums.Add(newStadium); //TODO: fix the problem with adding a stadium that exists in the db
   }
@@ -105,13 +97,14 @@ public class Event : EntityBase, IAggregateRoot
   public void AddTeam(Team newTeam)
   {
     Guard.Against.Null(newTeam, nameof(newTeam));
-    if(_teams.Contains(newTeam)) {
+    if (_teams.Contains(newTeam))
+    {
       throw new Exception("The team " + newTeam.Name + " was chosen more than once.");
     }
     Guard.Against.Negative(
       newTeam.NumberOfPlayers - MinPlayersQuantityPerTeam,
       null,
-      "Number of players in team " + newTeam.Name + " is too low. Miniumum is " + MinPlayersQuantityPerTeam
+      "Number of players in team " + newTeam.Name + " is too low. Minikmum is " + MinPlayersQuantityPerTeam
       );
     _teams.Add(newTeam);
   }
@@ -125,7 +118,7 @@ public class Event : EntityBase, IAggregateRoot
   {
     this.IsArchived = true;
     this._teams.Clear();
-    foreach(Match match in _matches)
+    foreach (Match match in _matches)
     {
       match.Archive();
     }
