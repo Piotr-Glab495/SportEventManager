@@ -1,34 +1,36 @@
-function checkPesel(input) {
-    var inputPesel = String(input.value);
 
-    var existingPeselNumbers = document.getElementById('existingPeselNumbers').value
+function checkAllPeselNumbers(event) {
+    event.preventDefault();
+    var peselInputs = document.querySelectorAll('#pesel-input');
+    var postedPeselNumbersList = [];
+    peselInputs.forEach(input => {
+        postedPeselNumbersList.push(input.value);
+    })
 
-    var existingPeselNumbersList = existingPeselNumbers.split(',');
-
-    if (existingPeselNumbersList.includes(inputPesel)) {
-        alert('This PESEL number ' + inputPesel + ' already exists!');
-        input.value = '';
+    var uniquePeselNumbersSet = [...new Set(postedPeselNumbersList)];
+    if (uniquePeselNumbersSet.length !== postedPeselNumbersList.length) {
+        alert('You can\'t post two players with the same pesel numbers!');
     }
 }
 
-function DeleteItem(btn) {
+//nie dzia³a to gówno jebane ani z click ani z niczym - nie da siê zatrzymaæ wejœcia do kontrolera
+//bo wywo³aæ inaczej sam¹ metodê to akurat luz, ale jak z html to nie podajesz eventu do preventDefault()
+//jak sie uda zrobiæ coœ z tym peslem to trzeba to samo zrobiæ z tagiem i numerami na koszulkach
+('#TeamsForm').addEventListener("submit", checkAllPeselNumbers);
 
+function adjustPlayersRows() {
     var table = document.getElementById('PlayersTable');
     var rows = table.getElementsByTagName('tr');
-    if (rows.length == 2) {
-        alert("This row cannot be deleted!");
-        return;
+    var numberOfPlayers = document.getElementById('NumberOfPlayers').value;
+    while (rows.length - 1 < numberOfPlayers) {
+        addRow(table, rows)
     }
-    $(btn).closest('tr').remove();
+    while (rows.length - 1 > numberOfPlayers) {
+        subtractRow(table, rows)
+    }
 }
 
-function AddItem(btn) {
-    var table = document.getElementById('PlayersTable');
-    var rows = table.getElementsByTagName('tr');
-    if (rows.length > document.getElementById('NumberOfPlayers').value) {
-        alert("Maximum players' quantity exceeded!");
-        return;
-    }
+function addRow(table, rows) {
     var rowOutherHtml = rows[rows.length - 1].outerHTML;
     var lastrowIdx = document.getElementById('hdnLastIndex').value;
     var nextrowIdx = eval(lastrowIdx) + 1;
@@ -38,12 +40,20 @@ function AddItem(btn) {
     rowOutherHtml = rowOutherHtml.replaceAll('-' + lastrowIdx, nextrowIdx + '_');
     var newRow = table.insertRow();
     newRow.innerHTML = rowOutherHtml;
-    var btnAddID = btn.id;
-    var btnDeleteid = btn.replaceAll('btnadd', 'btnremove');
-    var delbtn = document.getElementById(btnDeleteid);
-    delbtn.classList.add("visible");
-    delbtn.classList.remove("invisible");
-    var addbtn = document.getElementById(btnAddID);
-    delbtn.classList.remove("visible");
-    delbtn.classList.add("invisible");
+    var inputsCollection = newRow.getElementsByTagName('input');
+    for (var i = 0; i < inputsCollection.length; i++) {
+        if (i % 5 != 0) {
+            inputsCollection[i].value = "";
+        }
+        if (inputsCollection[i].type == "number" && !inputsCollection[i].classList.contains('id-input')) {
+            inputsCollection[i].value = 1;
+        }
+    }
+}
+
+function subtractRow(table, rows) {
+    if(rows.length == 2) {
+        return;
+    }
+    table.rows[table.rows.length - 1].remove();
 }
