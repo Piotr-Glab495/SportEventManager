@@ -4,7 +4,6 @@ using SportEventManager.Infrastructure.Data;
 using SportEventManager.Core.UserAggregate;
 using SportEventManager.Core.EventAggregate;
 using SportEventManager.Core.TeamAggregate;
-using System;
 
 namespace SportEventManager.Web;
 
@@ -20,7 +19,7 @@ public static class SeedData
     using (var userDbContext = new UserDbContext(
         serviceProvider.GetRequiredService<DbContextOptions<UserDbContext>>()))
     {
-      if (userDbContext.Users.Count() < 3)
+      if(userDbContext.Users.Count() < 3)
       {
         await PopulateTestDataAsync(userDbContext, serviceProvider);
       }
@@ -38,12 +37,12 @@ public static class SeedData
   }
   public async static Task PopulateTestDataAsync(DbContext dbContext, IServiceProvider serviceProvider)
   {
-    if (dbContext is AppDbContext appDb)
+    if(dbContext is AppDbContext appDb)
     {
       ClearAppDb(appDb);
       await PrepareExampleAppDbDataAsync(appDb, serviceProvider);
-    }
-    else if (dbContext is UserDbContext userDb)
+    } 
+    else if(dbContext is UserDbContext userDb) 
     {
       ClearUserDb(userDb);
       await PrepareExampleUserRolesAsync(serviceProvider);
@@ -74,23 +73,23 @@ public static class SeedData
   private async static Task PrepareExampleUsersAsync(IServiceProvider serviceProvider)
   {
     var userManager = serviceProvider.GetRequiredService<UserManager<User>>();
-
-    for (int i = 0; i < 3; i++)
-    {
-      if (await userManager.FindByEmailAsync(emails[i]) == null)
+    
+      for (int i = 0; i < 3; i++)
       {
-        var user = new User()
+        if (await userManager.FindByEmailAsync(emails[i]) == null)
         {
-          FirstName = names[i],
-          LastName = names[i],
-          UserName = names[i],
-          Email = emails[i],
-          EmailConfirmed = true
-        };
-        await userManager.CreateAsync(user, passwords[i]);
-        await userManager.AddToRoleAsync(user, names[i]);
+          var user = new User()
+          {
+            FirstName = names[i],
+            LastName = names[i],
+            UserName = names[i],
+            Email = emails[i],
+            EmailConfirmed = true
+          };
+          await userManager.CreateAsync(user, passwords[i]);
+          await userManager.AddToRoleAsync(user, names[i]);
+        }
       }
-    }
   }
 
   private static void ClearAppDb(AppDbContext appDb)
@@ -99,6 +98,7 @@ public static class SeedData
     appDb.RemoveRange(appDb.Players);
     appDb.RemoveRange(appDb.TeamsMatchesStats);
     appDb.RemoveRange(appDb.Teams);
+    //appDb.RemoveRange(appDb.Stats);
     appDb.RemoveRange(appDb.Stadiums);
     appDb.RemoveRange(appDb.Matches);
     appDb.RemoveRange(appDb.Events);
@@ -134,8 +134,9 @@ public static class SeedData
         var player = new Player($"Imię {j} - {team.Name}", $"Nazwisko {j} - {team.Name}", $"{90030501900 + uniquePeselModifier}");
         appDb.Players.Add(player);
         team.AddPlayer(player, existingPeselNumbers);
-        existingPeselNumbers.Add(player.Pesel);
         uniquePeselModifier++;
+        existingPeselNumbers.Add(player.Pesel);
+        
       }
       teams.Add(team);
     }

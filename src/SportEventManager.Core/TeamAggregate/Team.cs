@@ -73,6 +73,7 @@ public class Team : EntityBase, IAggregateRoot
       throw new Exception("The player with pesel: " + newPlayer.Pesel + " is already in use!" +
         " Please inform your player he needs to be removed from his current team first!");
     }
+    newPlayer.ReaddPlayer();
     _players.Add(newPlayer);
   }
 
@@ -87,6 +88,7 @@ public class Team : EntityBase, IAggregateRoot
     _players[index].Name = Guard.Against.NullOrEmpty(name, nameof(name));
     _players[index].Surname = Guard.Against.NullOrEmpty(surname, nameof(surname));
     _players[index].Pesel = Guard.Against.NullOrEmpty(pesel, nameof(pesel));
+    _players[index].ReusePlayer(this.Id);
   }
 
   public void Archive()
@@ -95,6 +97,10 @@ public class Team : EntityBase, IAggregateRoot
     foreach(var teamPlayer in _teamPlayers)
     {
       teamPlayer.LeaveOn = DateTime.Now;
+    }
+    foreach(var player in _players)
+    {
+      player.Archive();
     }
   }
 
@@ -108,8 +114,10 @@ public class Team : EntityBase, IAggregateRoot
           continue;
         else if (_players[i].Pesel == players[j].Pesel)
           break;
-        else if (j == players.Count - 1 && _players[i].Pesel != players[j].Pesel)
+        else if (j == players.Count - 1 && _players[i].Pesel != players[j].Pesel) { 
           _teamPlayers[i].LeaveOn = DateTime.Now;
+          _players[i].Archive();
+        }
   }
 
   public void UpdateTeam(string name, string tag, string city, int numberOfPlayers, List<string>? existingTags)
@@ -133,6 +141,7 @@ public class Team : EntityBase, IAggregateRoot
     bool peselIsValidatedAlready = false
     )
   {
+    
     if (player != null)
     {
       if (
@@ -143,6 +152,10 @@ public class Team : EntityBase, IAggregateRoot
       {
         throw new Exception("The player with pesel: " + newPesel + " is already in use!" +
           " Please inform your player he needs to be removed from his current team first!");
+      }
+      if (peselIsValidatedAlready)
+      {
+        this.AddPlayer(player, existingPeselNumbers, peselIsValidatedAlready);
       }
       this.UpdatePlayer(player.Id, newName, newSurname, newPesel);
     }
